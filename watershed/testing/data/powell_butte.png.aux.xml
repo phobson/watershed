@@ -1,0 +1,3 @@
+<PAMDataset>
+  <SRS>PROJCS[&quot;NAD_1927_UTM_Zone_10N&quot;,GEOGCS[&quot;GCS_North_American_1927&quot;,DATUM[&quot;North_American_Datum_1927&quot;,SPHEROID[&quot;Clarke_1866&quot;,6378206.4,294.9786982]],PRIMEM[&quot;Greenwich&quot;,0.0],UNIT[&quot;Degree&quot;,0.0174532925199433]],PROJECTION[&quot;Transverse_Mercator&quot;],PARAMETER[&quot;false_easting&quot;,500000.0],PARAMETER[&quot;false_northing&quot;,0.0],PARAMETER[&quot;central_meridian&quot;,-123.0],PARAMETER[&quot;scale_factor&quot;,0.9996],PARAMETER[&quot;latitude_of_origin&quot;,0.0],UNIT[&quot;Meter&quot;,1.0]]</SRS>
+</PAMDataset>
