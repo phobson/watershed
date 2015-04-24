@@ -4,7 +4,7 @@ from .algo import (
     mask_topo
 )
 
-# from .io import (
-#     load_example
-# )
+from .io import (
+    load_example
+)
 
