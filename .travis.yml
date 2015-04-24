@@ -5,12 +5,27 @@ matrix:
     - python: 2.7
       env:
         - COVERAGE=false
-    - python: 3.3
+        - NUMPY=1.7
+    - python: 2.7
       env:
         - COVERAGE=false
+        - NUMPY=1.8
+    - python: 2.7
+      env:
+        - COVERAGE=false
+        - NUMPY=1.9
+    - python: 3.4
+      env:
+        - COVERAGE=false
+        - NUMPY=1.7
+    - python: 3.4
+      env:
+        - COVERAGE=false
+        - NUMPY=1.8
     - python: 3.4
       env:
         - COVERAGE=true
+        - NUMPY=1.9
 
 before_install:
 
