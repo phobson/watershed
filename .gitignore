@@ -7,6 +7,7 @@
 *.o
 *.so
 *.pyc
+*.egg-info
 
 # Packages #
 ############
@@ -39,45 +40,7 @@ Thumbs.db
 *~
 *.swp
 
-# big files #
-#############
-other_docs/*
-src/bmp/summary/*
-src/bmp/data/project/*
 
-
-# tex files #
-#############
-src/bmp/tex/*.pdf
-src/cvc/output/tex/*
-*.aux
-*.out
-*.toc
-*.snm
-*.nav
-
-# test output #
-###############
-src/*/tests/*.pdf
-src/*/tests/*.png
-src/*/tests/*.csv
-src/*/tests/*.tex
-src/*/tests/*.xlsx
-.noseids
-.coverage
-wqio.egg-info/*
-results_images/*
-
-# scratch files #
-#################
-src/scratch/*
-src/bmp/tex/boxplotlegend.png
-*ipython_log*
-*.noseids
-.ipynb_checkpoints
-*.sublime-workspace
-src/*/old/*
-src/bmp/data/old/*
 
 # Visual Studio stuff #
 #######################
