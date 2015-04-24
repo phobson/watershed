@@ -17,10 +17,6 @@ matrix:
     - python: 3.4
       env:
         - COVERAGE=false
-        - NUMPY=1.7
-    - python: 3.4
-      env:
-        - COVERAGE=false
         - NUMPY=1.8
     - python: 3.4
       env:
@@ -45,7 +41,7 @@ install:
   - conda create --yes -n test python=$TRAVIS_PYTHON_VERSION
   - source activate test
   #- conda config --add channels phobson
-  - conda install --yes numpy nose
+  - conda install --yes numpy=$NUMPY scipy nose
   - conda install --yes coverage docopt requests pyyaml
   - pip install coveralls
   - pip install .
