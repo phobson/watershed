@@ -1,4 +1,7 @@
+from __future__ import division
+
 import numpy
+from scipy import ndimage
 
 DISTANCE = numpy.sqrt([
     2., 1., 2.,
@@ -169,7 +172,7 @@ def trace_upstream(flow_dir, row, col):
     return is_upstream
 
 
-def mask_topo(topo, row, col, mask_upstream=False):
+def mask_topo(topo, row, col, zoom_factor=1, mask_upstream=False):
     '''Block out all cells that are not upstream from a specific cell
 
     Parameters
@@ -179,6 +182,10 @@ def mask_topo(topo, row, col, mask_upstream=False):
     row, col : int
         Indices of the cells from which the upstream network should be
         traced.
+    zoom_factor : float, optional
+        Factor by which the image should be zoomed. Should typically be
+        less than 1 to effectively coursen very high resolution DEMs
+        so that flat areas or depressions don't truncate the trace.
     mask_upstream : bool, optional
         If False (default) all cell *not* upstream of `topo[row, col]`
         will be maked. Otherwise, the upstream cells will be masked
@@ -190,9 +197,20 @@ def mask_topo(topo, row, col, mask_upstream=False):
         are masked out.
 
     '''
+    # apply the zoom_factor
+    _topo = ndimage.zoom(topo, zoom_factor, order=0)
+    _row, _col = map(lambda x: numpy.floor(x * zoom_factor), (row, col))
 
-    flow_dir = flow_direction_d8(topo)
-    upstream = trace_upstream(flow_dir, row, col)
+    # determine the flow direction
+    flow_dir = flow_direction_d8(_topo)
+
+    # trace upstream on the zoomed DEM
+    _upstream = trace_upstream(flow_dir, _row, _col)
+
+    # unzoom the upstream mask
+    upstream = ndimage.zoom(_upstream, zoom_factor**-1, order=0)
+
+    # apply the mask
     if mask_upstream:
         return numpy.ma.masked_array(data=topo, mask=upstream)
     else:
