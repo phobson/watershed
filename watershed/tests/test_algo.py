@@ -7,7 +7,7 @@ from scipy import ndimage
 from watershed import algo
 
 
-## ESRI Example Datase
+## ESRI Example Dataset
 ## see: http://goo.gl/UeiaCi
 ESRI_TOPO = numpy.array([
     [78., 72., 69., 71., 58., 49.],
@@ -24,7 +24,7 @@ ESRI_FLOW_DIR_D8 = numpy.array([
     [  1,   1,   2,   4,   8,   4],
     [128, 128,   1,   2,   4,   8],
     [  2,   2,   1,   4,   4,   4],
-    [  1,   1,   1,   1,  32,  16]
+    [  1,   1,   1,   1,   4,  16]
 ])
 
 ESRI_UPSTREAM_HIGH = numpy.array([
@@ -72,6 +72,37 @@ def test__stack_neighbors():
     ])
 
     nptest.assert_array_equal(blocks, known_blocks)
+
+
+class test__process_edges(object):
+    def setup(self):
+        self._slope = numpy.ones((4, 7, 1))
+        self._mask = numpy.zeros_like(self._slope)
+
+        rows = numpy.array([0, 0, 0, 1, 2, 3, 3, 3, 3])
+        cols = numpy.array([0, 3, 6, 0, 6, 0, 2, 3, 6])
+        self._mask[rows, cols, :] = 1
+
+        self.direction = numpy.zeros_like(self._slope).sum(axis=2)
+
+        self.known_direction = numpy.array([
+            [32, 0, 0, 64, 0, 0, 128],
+            [16, 0, 0,  0, 0, 0,   0],
+            [ 0, 0, 0,  0, 0, 0,   1],
+            [ 8, 0, 4,  4, 0, 0,   2]
+        ])
+
+    def test_nosink(self):
+        slope = numpy.ma.masked_array(self._slope, self._mask)
+        direction = algo._process_edges(slope, self.direction)
+        nptest.assert_array_equal(direction, self.known_direction)
+
+    @nt.raises(ValueError)
+    def test_sink(self):
+        mask = self._mask.copy()
+        mask[2, 4] = 1
+        slope = numpy.ma.masked_array(self._slope, mask)
+        direction = algo._process_edges(slope, self.direction)
 
 
 ##

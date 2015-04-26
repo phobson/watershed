@@ -1,5 +1,7 @@
 from __future__ import division
 
+from collections import defaultdict
+
 import numpy
 from scipy import ndimage
 
@@ -9,7 +11,7 @@ DISTANCE = numpy.sqrt([
     2., 1., 2.
 ])
 
-DIR_MAP = dict(zip(range(9), [32, 64, 128, 16, 0, 1, 8, 4, 2]))
+DIR_MAP = dict(zip(range(9), [32, 64, 128, 16, -1, 1, 8, 4, 2]))
 FLOWS_IN = numpy.array([2, 4, 8, 1, numpy.nan, 16, 128, 64, 32])
 
 def _stack_neighbors(topo, *padargs, **padkwargs):
@@ -51,8 +53,57 @@ def _stack_neighbors(topo, *padargs, **padkwargs):
     return blocked
 
 
+def _process_edges(slope, direction):
+    '''Handles edges and corners of the a flow-direction array.
+
+    When edges and corners do not flow into the interior of the
+    array, they need to flow out of the array.
+    '''
+
+    # shape of the raster
+    rows, cols = direction.shape
+
+    # where no flow direction could be computed
+    _r, _c =  numpy.where(slope.mask.all(axis=2))
+
+    # no direction cells on the top row flow up
+    toprow = defaultdict(lambda: 64)
+
+    # top-row corners flow out at angles
+    toprow.update({0: 32, cols-1: 128})
+
+    # no direction cells on the bottom flow down
+    bottomrow = defaultdict(lambda: 4)
+
+    # bottom row corners
+    bottomrow.update({0: 8, cols-1: 2})
+
+    # set up the main look-up dictionary
+    # non-top or bottom cells flow left or right
+    missing_directions = defaultdict(lambda: {0: 16, cols-1: 1})
+
+    # add top/bottom rows to the main dictionary
+    missing_directions.update({0: toprow, rows-1: bottomrow})
+
+    # loop through all of the cells w/o flow direction
+    for r, c in zip(_r, _c):
+        if r in [0, rows-1] or c in [0, cols-1]:
+            direction[r, c] = missing_directions[r][c]
+        else:
+            # raise an error if we didn't clean up an internal sink
+            msg = "internal sink at ({}, {})".format(int(r), int(c))
+            raise ValueError(msg)
+
+    return direction
+
+
 def flow_direction_d8(topo):
     '''Compute the flow direction of topographic data
+
+    Flow Directions from cell X:
+     32 64 128
+     16  X  1
+      8  4  2
 
     Parameters
     ----------
@@ -84,9 +135,8 @@ def flow_direction_d8(topo):
     # location of the steepes slope
     index = slope.argmax(axis=2)
 
-    # map in the values to the flow directions
-    direction = numpy.array([DIR_MAP.get(x) for x in index.flat]).reshape(rows, cols)
-    return direction
+    direction = numpy.array([DIR_MAP.get(x, -1) for x in index.flat]).reshape(rows, cols)
+    return _process_edges(slope, direction)
 
 
 def _trace_upstream(flow_dir, blocks, is_upstream, row, col):
@@ -125,7 +175,7 @@ def _trace_upstream(flow_dir, blocks, is_upstream, row, col):
 
     if is_upstream[row, col] == 0:
 
-        # we consider a cell tp be upstream of itself
+        # we consider a cell to be upstream of itself
         is_upstream[row, col] = 1
 
         # flow direction of a cell's neighbors
