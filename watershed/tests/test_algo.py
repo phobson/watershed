@@ -45,13 +45,15 @@ ESRI_UPSTREAM_LOW = numpy.array([
     [0, 0, 0, 0, 0, 0],
 ])
 
+## modified from http://goo.gl/Pzvuvz
+## per http://goo.gl/PZWbOE
 ESRI_FLOW_ACC = numpy.array([
     [ 0,  0,  0,  0,  0,  0],
     [ 0,  1,  1,  2,  2,  0],
     [ 0,  3,  7,  5,  4,  0],
     [ 0,  0,  0, 20,  0,  1],
     [ 0,  0,  0,  1, 24,  0],
-    [ 0,  2,  4,  6, 35,  2],
+    [ 0,  2,  4,  7, 35,  1],
 ])
 
 
@@ -182,3 +184,18 @@ class test_mask_upstream_arcgis_zoomed(baseMaskUpstream_Mixin):
         self.row_low, self.col_low = (3*self.factor, 3*self.factor)
         self.known_upstream_low = ndimage.zoom(ESRI_UPSTREAM_LOW.copy(),
                                                self.factor, order=self.order)
+
+
+##
+## Flow Accumulation tests
+class baseFlowAccumulation_Mixin(object):
+    def test_flow_accumulation(self):
+        flow_acc = algo.flow_accumulation(self.flow_dir)
+        nptest.assert_array_equal(flow_acc, self.known_flow_acc)
+
+
+class test_flow_accumulation_arcgis(baseFlowAccumulation_Mixin):
+    def setup(self):
+        self.flow_dir = ESRI_FLOW_DIR_D8.copy()
+        self.known_flow_acc = ESRI_FLOW_ACC.copy()
+

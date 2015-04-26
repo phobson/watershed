@@ -265,3 +265,42 @@ def mask_topo(topo, row, col, zoom_factor=1, mask_upstream=False):
         return numpy.ma.masked_array(data=topo, mask=upstream)
     else:
         return numpy.ma.masked_array(data=topo, mask=numpy.logical_not(upstream))
+
+
+def flow_accumulation(flow_dir):
+    '''Compute the flow accumulation from flow directions
+
+    Determines the number of cells flowing into every cell
+    in an array represeting flow direction.
+
+    Parameters
+    ----------
+    flow_dir : numpy array
+        Array representing flow direction.
+
+    Returns
+    -------
+    flow_acc : numpy array
+        Array representing the flow accumulation for each
+        cell in the input `flow_dir` array.
+
+    See Also
+    --------
+    flow_direction_d8
+    trace_upstream
+
+    References
+    ----------
+    http://goo.gl/Pzvuvz -- note error in lower right corner
+    per http://goo.gl/PZWbOE
+
+    '''
+
+    # initial the output array
+    flow_acc = numpy.zeros_like(flow_dir)
+    for row in range(flow_acc.shape[0]):
+        for col in range(flow_acc.shape[1]):
+            flow_acc[row, col] = trace_upstream(flow_dir, row, col).sum() - 1
+
+    return flow_acc
+
