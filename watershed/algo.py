@@ -10,9 +10,9 @@ DISTANCE = numpy.sqrt([
     1., 1., 1.,
     2., 1., 2.
 ])
-
 DIR_MAP = dict(zip(range(9), [32, 64, 128, 16, -1, 1, 8, 4, 2]))
 FLOWS_IN = numpy.array([2, 4, 8, 1, numpy.nan, 16, 128, 64, 32])
+
 
 def _stack_neighbors(topo, *padargs, **padkwargs):
     '''Create a MxNx9 array of neighbors
@@ -51,6 +51,120 @@ def _stack_neighbors(topo, *padargs, **padkwargs):
     ])
 
     return blocked
+
+
+def _adjacent_slopes(topo):
+    '''Compute the slope from each to cell to all of its neighbors
+
+    Parameters
+    ----------
+    topo : numpy array (MxN)
+        Elevation data
+
+    Returns
+    -------
+    slope : numpy array (MxNx9)
+        3-D array where the z-axis is the unraveled slope array of
+        each cell's neighbors.
+
+    Notes
+    -----
+    Downward slopes are represented with positive numbers.
+
+    See Also
+    --------
+    watershed._stack_neighbors
+
+    '''
+
+    # initial array shape
+    rows, cols = topo.shape
+
+    # make 3-D array of each cell's neighbors
+    blocks = _stack_neighbors(topo, mode='edge', pad_width=1)
+
+    # change in elevation (dz/dx)
+    drop = topo.reshape(rows, cols, 1) - blocks
+
+    # Slope (dz/dx) masked to exclude uphill directions
+    slope = numpy.ma.masked_less_equal(drop / DISTANCE, 0)
+
+    return slope
+
+
+def _mark_sinks(topo):
+    '''Marks sink areas in a DEM
+
+    Parameters
+    ----------
+    topo : numpy array
+        Eelvation data
+
+    Returns
+    -------
+    sink : numpy array
+        Bool array. True value indicate cell is (in) a sink.
+
+    '''
+
+    # compute the slopes in every direction at each cell
+    slope = _adjacent_slopes(topo)
+
+    # find where this is no downward slope
+    sinks = slope.data.max(axis=2) == 0
+
+    # remove 'sinks' on the edges of the array
+    sinks[(0, -1), :] = False
+    sinks[:, (0, -1)] = False
+
+    return sinks
+
+
+def fill_sinks(topo, copy=True):
+    '''
+    Fills sink areas in a DEM with the lowest adjacent elevation
+
+    Parameters
+    ----------
+    topo : numpy array
+        Elevation data
+    copy : bool, optional
+        When True, operates on a copy of the `topo` array. Set to
+        False if memory is a concern.
+
+    Returns
+    -------
+    filled : numpy array
+        Numpy array with all the sinks filled
+
+    See Also
+    --------
+    watershed.flow_direction_d8
+    watershed.trace_upstream
+    watershed.flow_accumulation
+
+    '''
+
+    if copy:
+        _topo = topo.copy()
+    else:  # pragma: no cover
+        _topo = topo
+
+    sinks = _mark_sinks(_topo)
+    blocks = _stack_neighbors(topo, mode='edge', pad_width=1)
+    if sinks.sum() == 0:
+        return _topo
+    else:
+        # loop through each sink and set its elevation to that of
+        # its lowest neighbor
+        rows, cols = numpy.where(sinks)
+        for r, c in zip(rows, cols):
+            neighbors = blocks[r, c, :]
+            _topo[r, c] = neighbors[neighbors > _topo[r, c]].min()
+
+        # recursively go back and check that all the
+        # sinks were filled
+        return fill_sinks(_topo, copy=copy)
 
 
 def _process_edges(slope, direction):
@@ -113,10 +227,15 @@ def flow_direction_d8(topo):
     Returns
     -------
     direction : numpy array
-        Flow directions as defined in
-        http://hydrology.usu.edu/taudem/taudem5/help/D8FlowDirections.html
+        Flow directions as defined in the references below.
 
     See Also
+    --------
+    watershed.fill_sinks
+    watershed.trace_upstream
+    watershed.flow_accumulation
+
+    References
     --------
     http://onlinelibrary.wiley.com/doi/10.1029/96WR03137/pdf
 
@@ -124,18 +243,14 @@ def flow_direction_d8(topo):
     # inital array shape
     rows, cols = topo.shape
 
-    blocks = _stack_neighbors(topo, mode='edge', pad_width=1)
-
-    # change in elevation (dz/dx)
-    drop = topo.reshape(rows, cols, 1) - blocks
-
-    # Slope (dz/dx) masked to exclude uphill directions
-    slope = numpy.ma.masked_less_equal(drop / DISTANCE, 0)
+    slope = _adjacent_slopes(topo)
 
     # location of the steepes slope
     index = slope.argmax(axis=2)
 
-    direction = numpy.array([DIR_MAP.get(x, -1) for x in index.flat]).reshape(rows, cols)
+    direction = numpy.array([
+        DIR_MAP.get(x, -1) for x in index.flat
+    ]).reshape(rows, cols)
     return _process_edges(slope, direction)
 
 
@@ -208,7 +323,9 @@ def trace_upstream(flow_dir, row, col):
 
     See Also
     --------
-    flow_direction_d8
+    watershed.fill_sinks
+    watershed.flow_direction_d8
+    watershed.flow_accumulation
 
     '''
 
@@ -286,13 +403,13 @@ def flow_accumulation(flow_dir):
 
     See Also
     --------
-    flow_direction_d8
-    trace_upstream
+    watershed.fill_sinks
+    watershed.flow_direction_d8
+    watershed.trace_upstream
 
     References
     ----------
-    http://goo.gl/Pzvuvz -- note error in lower right corner
-    per http://goo.gl/PZWbOE
+    http://goo.gl/57r7SU
 
     '''
 
@@ -303,4 +420,3 @@ def flow_accumulation(flow_dir):
             flow_acc[row, col] = trace_upstream(flow_dir, row, col).sum() - 1
 
     return flow_acc
-

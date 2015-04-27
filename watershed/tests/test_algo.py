@@ -26,6 +26,109 @@ def test__stack_neighbors():
     nptest.assert_array_equal(blocks, known_blocks)
 
 
+def test__adjacent_slopes():
+    known_slope_data = numpy.array([
+        [
+            [ 0.   ,  0.   ,  1.414,  0.   ,  0.   ,  2.   , -1.414, -2.   , 1.414],
+            [-1.414,  0.   ,  0.707, -2.   ,  0.   ,  1.   , -2.828,  0.   ,-2.121],
+            [-0.707,  0.   ,  0.707, -1.   ,  0.   ,  1.   , -0.707, -4.   ,-1.414],
+            [-0.707,  0.   ,  0.   , -1.   ,  0.   ,  0.   , -3.536, -3.   ,-2.121]
+        ], [
+            [ 1.414,  2.   ,  2.828,  0.   ,  0.   ,  4.   , -1.414, -2.   , 1.414],
+            [-1.414,  0.   ,  0.707, -4.   ,  0.   , -3.   , -4.243, -2.   ,-1.414],
+            [ 2.121,  4.   ,  3.536,  3.   ,  0.   ,  2.   ,  0.707,  1.   , 2.121],
+            [ 1.414,  3.   ,  2.121, -2.   ,  0.   ,  0.   , -0.707,  1.   , 0.707]
+        ], [
+            [ 1.414,  2.   ,  4.243,  0.   ,  0.   ,  4.   , -1.414, -2.   , 0.   ],
+            [-1.414,  2.   , -0.707, -4.   ,  0.   ,  0.   , -4.243, -4.   ,-1.414],
+            [ 1.414, -1.   ,  0.707,  0.   ,  0.   ,  2.   , -2.828, -2.   , 0.   ],
+            [-2.121, -1.   , -0.707, -2.   ,  0.   ,  0.   , -2.828, -2.   ,-1.414]
+        ], [
+            [ 1.414,  2.   ,  4.243,  0.   ,  0.   ,  2.   ,  0.   ,  0.   , 1.414],
+            [ 0.   ,  4.   ,  2.828, -2.   ,  0.   ,  2.   , -1.414,  0.   , 1.414],
+            [ 1.414,  2.   ,  2.828, -2.   ,  0.   ,  2.   , -1.414,  0.   , 1.414],
+            [ 0.   ,  2.   ,  1.414, -2.   ,  0.   ,  0.   , -1.414,  0.   , 0.   ]
+        ]
+    ])
+
+    known_slope_mask = numpy.array([
+        [
+            [ True,  True, False,  True,  True, False,  True,  True, False],
+            [ True,  True, False,  True,  True, False,  True,  True,  True],
+            [ True,  True, False,  True,  True, False,  True,  True,  True],
+            [ True,  True,  True,  True,  True,  True,  True,  True,  True]
+        ], [
+            [False, False, False,  True,  True, False,  True,  True, False],
+            [ True,  True, False,  True,  True,  True,  True,  True,  True],
+            [False, False, False, False,  True, False, False, False, False],
+            [False, False, False,  True,  True,  True,  True, False, False]
+        ], [
+            [False, False, False,  True,  True, False,  True,  True,  True],
+            [ True, False,  True,  True,  True,  True,  True,  True,  True],
+            [False,  True, False,  True,  True, False,  True,  True,  True],
+            [ True,  True,  True,  True,  True,  True,  True,  True,  True]
+        ], [
+            [False, False, False,  True,  True, False,  True,  True, False],
+            [ True, False, False,  True,  True, False,  True,  True, False],
+            [False, False, False,  True,  True, False,  True,  True, False],
+            [ True, False, False,  True,  True,  True,  True,  True,  True]
+        ]
+    ])
+
+    known_slopes = numpy.ma.masked_array(data=known_slope_data, mask=known_slope_mask)
+
+    topo = numpy.array([
+        [14, 12, 11, 10],
+        [16, 12, 15, 13],
+        [18, 14, 14, 12],
+        [20, 18, 16, 14]
+    ])
+
+    slopes = algo._adjacent_slopes(topo)
+    nptest.assert_array_almost_equal(slopes, known_slopes, decimal=3)
+
+
+##
+## Fill sink tests
+class baseFillSink_Mixin(object):
+    def test_filler(self):
+        filled = algo.fill_sinks(self.topo, copy=True)
+        nptest.assert_array_equal(filled, self.known_filled)
+
+    def test_filler_no_copy(self):
+        topo = self.topo.copy()
+        filled = algo.fill_sinks(topo, copy=False)
+        nptest.assert_array_equal(topo, filled)
+
+    def test_marker(self):
+        sinks = algo._mark_sinks(self.topo)
+        nptest.assert_array_equal(sinks, self.known_sinks)
+
+
+class test_fill_sinks_basic(baseFillSink_Mixin):
+    def setup(self):
+        self.topo = numpy.array([
+            [14, 12, 11, 10],
+            [16, 10, 15, 13],
+            [18, 10, 14, 12],
+            [20, 18, 16, 14],
+        ])
+
+        self.known_sinks = numpy.array([
+            [False, False, False, False],
+            [False, True, False, False],
+            [False, True, False, False],
+            [False, False, False, False]
+        ])
+
+        self.known_filled = numpy.array([
+            [14, 12, 11, 10],
+            [16, 12, 15, 13],
+            [18, 14, 14, 12],
+            [20, 18, 16, 14],
+        ])
+
+
 class test__process_edges(object):
     def setup(self):
         self._slope = numpy.ones((4, 7, 1))
@@ -148,4 +251,5 @@ class test_flow_accumulation_arcgis(baseFlowAccumulation_Mixin):
     def setup(self):
         self.flow_dir = testing.ESRI_FLOW_DIR_D8.copy()
         self.known_flow_acc = testing.ESRI_FLOW_ACC.copy()
+
 
