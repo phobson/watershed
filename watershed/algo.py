@@ -151,7 +151,7 @@ def fill_sinks(topo, copy=True):
         _topo = topo
 
     sinks = _mark_sinks(_topo)
-    blocks = _stack_neighbors(topo, mode='edge', pad_width=1)
+    blocks = _stack_neighbors(_topo, mode='edge', pad_width=1)
 
     # return if there are no sinks to fill
     if sinks.sum() == 0:
@@ -161,8 +161,16 @@ def fill_sinks(topo, copy=True):
         # its lowest neighbor
         rows, cols = numpy.where(sinks)
         for r, c in zip(rows, cols):
+            # select all of the neighbors
             neighbors = blocks[r, c, :]
-            _topo[r, c] = neighbors[neighbors > _topo[r, c]].min()
+
+            # select the uphill neighbors
+            higher = neighbors[neighbors > _topo[r, c]]
+
+            # if we have uphill neighbors, take the closest one.
+            # otherwise, we'll come back to this when we recurse.
+            if higher.shape[0] > 0:
+                _topo[r, c] = higher.min()
 
         # recursively go back and check that all the
         # sinks were filled

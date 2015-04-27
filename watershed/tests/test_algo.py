@@ -119,6 +119,15 @@ class test_fill_sinks_quad(baseFillSink_Mixin):
         self.known_filled = testing.basic_slope_filled.copy()
 
 
+class test_fill_sinks_big(baseFillSink_Mixin):
+    def setup(self):
+        self.topo = testing.basic_slope_big_sink.copy()
+        self.known_sinks = self.topo == self.topo.min()
+        self.known_filled = testing.basic_slope_filled_big_sink.copy()
+
+
+##
+## Process edges
 class test__process_edges(object):
     def setup(self):
         self._slope = numpy.ones((4, 7, 1))
