@@ -105,28 +105,18 @@ class baseFillSink_Mixin(object):
         nptest.assert_array_equal(sinks, self.known_sinks)
 
 
-class test_fill_sinks_basic(baseFillSink_Mixin):
+class test_fill_sinks_single(baseFillSink_Mixin):
     def setup(self):
-        self.topo = numpy.array([
-            [14, 12, 11, 10],
-            [16, 10, 15, 13],
-            [18, 10, 14, 12],
-            [20, 18, 16, 14],
-        ])
+        self.topo = testing.basic_slope_single_sink.copy()
+        self.known_sinks = self.topo == self.topo.min()
+        self.known_filled = testing.basic_slope_filled.copy()
 
-        self.known_sinks = numpy.array([
-            [False, False, False, False],
-            [False, True, False, False],
-            [False, True, False, False],
-            [False, False, False, False]
-        ])
 
-        self.known_filled = numpy.array([
-            [14, 12, 11, 10],
-            [16, 12, 15, 13],
-            [18, 14, 14, 12],
-            [20, 18, 16, 14],
-        ])
+class test_fill_sinks_quad(baseFillSink_Mixin):
+    def setup(self):
+        self.topo = testing.basic_slope_quad_sink.copy()
+        self.known_sinks = self.topo == self.topo.min()
+        self.known_filled = testing.basic_slope_filled.copy()
 
 
 class test__process_edges(object):

@@ -147,11 +147,13 @@ def fill_sinks(topo, copy=True):
 
     if copy:
         _topo = topo.copy()
-    else:  # pragma: no cover
+    else:
         _topo = topo
 
     sinks = _mark_sinks(_topo)
     blocks = _stack_neighbors(topo, mode='edge', pad_width=1)
+
+    # return if there are no sinks to fill
     if sinks.sum() == 0:
         return _topo
     else:
