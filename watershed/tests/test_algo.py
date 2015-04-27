@@ -1,61 +1,11 @@
 import numpy
+from scipy import ndimage
 
 import nose.tools as nt
 import numpy.testing as nptest
-from scipy import ndimage
 
 from watershed import algo
-
-
-## ESRI Example Dataset
-## see: http://goo.gl/UeiaCi
-ESRI_TOPO = numpy.array([
-    [78., 72., 69., 71., 58., 49.],
-    [74., 67., 56., 49., 46., 50.],
-    [69., 53., 44., 37., 38., 48.],
-    [64., 58., 55., 22., 31., 24.],
-    [68., 61., 47., 21., 16., 19.],
-    [74., 53., 34., 12., 11., 12.],
-])
-
-ESRI_FLOW_DIR_D8 = numpy.array([
-    [  2,   2,   2,   4,   4,   8],
-    [  2,   2,   2,   4,   4,   8],
-    [  1,   1,   2,   4,   8,   4],
-    [128, 128,   1,   2,   4,   8],
-    [  2,   2,   1,   4,   4,   4],
-    [  1,   1,   1,   1,   4,  16]
-])
-
-ESRI_UPSTREAM_HIGH = numpy.array([
-    [0, 1, 1, 1, 0, 0],
-    [0, 0, 1, 1, 0, 0],
-    [0, 0, 0, 1, 0, 0],
-    [0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0],
-])
-
-ESRI_UPSTREAM_LOW = numpy.array([
-    [1, 1, 1, 1, 1, 1],
-    [1, 1, 1, 1, 1, 1],
-    [1, 1, 1, 1, 1, 0],
-    [1, 1, 1, 1, 0, 0],
-    [0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0],
-])
-
-## modified from http://goo.gl/Pzvuvz
-## per http://goo.gl/PZWbOE
-ESRI_FLOW_ACC = numpy.array([
-    [ 0,  0,  0,  0,  0,  0],
-    [ 0,  1,  1,  2,  2,  0],
-    [ 0,  3,  7,  5,  4,  0],
-    [ 0,  0,  0, 20,  0,  1],
-    [ 0,  0,  0,  1, 24,  0],
-    [ 0,  2,  4,  7, 35,  1],
-])
-
+from watershed.testing import testing
 
 def test__stack_neighbors():
     arr = numpy.arange(6).reshape(2, 3)
@@ -74,6 +24,99 @@ def test__stack_neighbors():
     ])
 
     nptest.assert_array_equal(blocks, known_blocks)
+
+
+def test__adjacent_slopes():
+    known_slope_data = numpy.array([
+        [
+            [ 0.   ,  0.   ,  1.414,  0.   ,  0.   ,  2.   , -1.414, -2.   , 1.414],
+            [-1.414,  0.   ,  0.707, -2.   ,  0.   ,  1.   , -2.828,  0.   ,-2.121],
+            [-0.707,  0.   ,  0.707, -1.   ,  0.   ,  1.   , -0.707, -4.   ,-1.414],
+            [-0.707,  0.   ,  0.   , -1.   ,  0.   ,  0.   , -3.536, -3.   ,-2.121]
+        ], [
+            [ 1.414,  2.   ,  2.828,  0.   ,  0.   ,  4.   , -1.414, -2.   , 1.414],
+            [-1.414,  0.   ,  0.707, -4.   ,  0.   , -3.   , -4.243, -2.   ,-1.414],
+            [ 2.121,  4.   ,  3.536,  3.   ,  0.   ,  2.   ,  0.707,  1.   , 2.121],
+            [ 1.414,  3.   ,  2.121, -2.   ,  0.   ,  0.   , -0.707,  1.   , 0.707]
+        ], [
+            [ 1.414,  2.   ,  4.243,  0.   ,  0.   ,  4.   , -1.414, -2.   , 0.   ],
+            [-1.414,  2.   , -0.707, -4.   ,  0.   ,  0.   , -4.243, -4.   ,-1.414],
+            [ 1.414, -1.   ,  0.707,  0.   ,  0.   ,  2.   , -2.828, -2.   , 0.   ],
+            [-2.121, -1.   , -0.707, -2.   ,  0.   ,  0.   , -2.828, -2.   ,-1.414]
+        ], [
+            [ 1.414,  2.   ,  4.243,  0.   ,  0.   ,  2.   ,  0.   ,  0.   , 1.414],
+            [ 0.   ,  4.   ,  2.828, -2.   ,  0.   ,  2.   , -1.414,  0.   , 1.414],
+            [ 1.414,  2.   ,  2.828, -2.   ,  0.   ,  2.   , -1.414,  0.   , 1.414],
+            [ 0.   ,  2.   ,  1.414, -2.   ,  0.   ,  0.   , -1.414,  0.   , 0.   ]
+        ]
+    ])
+
+    known_slope_mask = numpy.array([
+        [
+            [ True,  True, False,  True,  True, False,  True,  True, False],
+            [ True,  True, False,  True,  True, False,  True,  True,  True],
+            [ True,  True, False,  True,  True, False,  True,  True,  True],
+            [ True,  True,  True,  True,  True,  True,  True,  True,  True]
+        ], [
+            [False, False, False,  True,  True, False,  True,  True, False],
+            [ True,  True, False,  True,  True,  True,  True,  True,  True],
+            [False, False, False, False,  True, False, False, False, False],
+            [False, False, False,  True,  True,  True,  True, False, False]
+        ], [
+            [False, False, False,  True,  True, False,  True,  True,  True],
+            [ True, False,  True,  True,  True,  True,  True,  True,  True],
+            [False,  True, False,  True,  True, False,  True,  True,  True],
+            [ True,  True,  True,  True,  True,  True,  True,  True,  True]
+        ], [
+            [False, False, False,  True,  True, False,  True,  True, False],
+            [ True, False, False,  True,  True, False,  True,  True, False],
+            [False, False, False,  True,  True, False,  True,  True, False],
+            [ True, False, False,  True,  True,  True,  True,  True,  True]
+        ]
+    ])
+
+    known_slopes = numpy.ma.masked_array(data=known_slope_data, mask=known_slope_mask)
+
+    topo = numpy.array([
+        [14, 12, 11, 10],
+        [16, 12, 15, 13],
+        [18, 14, 14, 12],
+        [20, 18, 16, 14]
+    ])
+
+    slopes = algo._adjacent_slopes(topo)
+    nptest.assert_array_almost_equal(slopes, known_slopes, decimal=3)
+
+
+##
+## Fill sink tests
+class baseFillSink_Mixin(object):
+    def test_filler(self):
+        filled = algo.fill_sinks(self.topo, copy=True)
+        nptest.assert_array_equal(filled, self.known_filled)
+
+    def test_filler_no_copy(self):
+        topo = self.topo.copy()
+        filled = algo.fill_sinks(topo, copy=False)
+        nptest.assert_array_equal(topo, filled)
+
+    def test_marker(self):
+        sinks = algo._mark_sinks(self.topo)
+        nptest.assert_array_equal(sinks, self.known_sinks)
+
+
+class test_fill_sinks_single(baseFillSink_Mixin):
+    def setup(self):
+        self.topo = testing.basic_slope_single_sink.copy()
+        self.known_sinks = self.topo == self.topo.min()
+        self.known_filled = testing.basic_slope_filled.copy()
+
+
+class test_fill_sinks_quad(baseFillSink_Mixin):
+    def setup(self):
+        self.topo = testing.basic_slope_quad_sink.copy()
+        self.known_sinks = self.topo == self.topo.min()
+        self.known_filled = testing.basic_slope_filled.copy()
 
 
 class test__process_edges(object):
@@ -117,8 +160,8 @@ class baseFlowDir_Mixin(object):
 
 class test_flow_direction_arcgis(baseFlowDir_Mixin):
     def setup(self):
-        self.topo = ESRI_TOPO.copy()
-        self.known_flow_dir_d8 = ESRI_FLOW_DIR_D8.copy()
+        self.topo = testing.ESRI_TOPO.copy()
+        self.known_flow_dir_d8 = testing.ESRI_FLOW_DIR_D8.copy()
 
 
 ##
@@ -135,12 +178,12 @@ class baseTraceUpstream_Mixin(object):
 
 class test_trace_upstream_arcgis(baseTraceUpstream_Mixin):
     def setup(self):
-        self.flow_dir = ESRI_FLOW_DIR_D8.copy()
+        self.flow_dir = testing.ESRI_FLOW_DIR_D8.copy()
         self.row_high, self.col_high = (2, 3)
-        self.known_upstream_high = ESRI_UPSTREAM_HIGH.copy()
+        self.known_upstream_high = testing.ESRI_UPSTREAM_HIGH.copy()
 
         self.row_low, self.col_low = (3, 3)
-        self.known_upstream_low = ESRI_UPSTREAM_LOW.copy()
+        self.known_upstream_low = testing.ESRI_UPSTREAM_LOW.copy()
 
 
 ##
@@ -164,25 +207,25 @@ class test_mask_upstream_arcgis(baseMaskUpstream_Mixin):
     def setup(self):
         self.factor = 1.
         self.order = 0
-        self.topo = ESRI_TOPO.copy()
+        self.topo = testing.ESRI_TOPO.copy()
         self.row_high, self.col_high = (2, 3)
-        self.known_upstream_high = ESRI_UPSTREAM_HIGH.copy()
+        self.known_upstream_high = testing.ESRI_UPSTREAM_HIGH.copy()
 
         self.row_low, self.col_low = (3, 3)
-        self.known_upstream_low = ESRI_UPSTREAM_LOW.copy()
+        self.known_upstream_low = testing.ESRI_UPSTREAM_LOW.copy()
 
 
 class test_mask_upstream_arcgis_zoomed(baseMaskUpstream_Mixin):
     def setup(self):
         self.factor = 2.
         self.order = 0
-        self.topo = ndimage.zoom(ESRI_TOPO.copy(), self.factor, order=self.order)
+        self.topo = ndimage.zoom(testing.ESRI_TOPO.copy(), self.factor, order=self.order)
         self.row_high, self.col_high = (2*self.factor, 3*self.factor)
-        self.known_upstream_high = ndimage.zoom(ESRI_UPSTREAM_HIGH.copy(),
+        self.known_upstream_high = ndimage.zoom(testing.ESRI_UPSTREAM_HIGH.copy(),
                                                 self.factor, order=self.order)
 
         self.row_low, self.col_low = (3*self.factor, 3*self.factor)
-        self.known_upstream_low = ndimage.zoom(ESRI_UPSTREAM_LOW.copy(),
+        self.known_upstream_low = ndimage.zoom(testing.ESRI_UPSTREAM_LOW.copy(),
                                                self.factor, order=self.order)
 
 
@@ -196,6 +239,7 @@ class baseFlowAccumulation_Mixin(object):
 
 class test_flow_accumulation_arcgis(baseFlowAccumulation_Mixin):
     def setup(self):
-        self.flow_dir = ESRI_FLOW_DIR_D8.copy()
-        self.known_flow_acc = ESRI_FLOW_ACC.copy()
+        self.flow_dir = testing.ESRI_FLOW_DIR_D8.copy()
+        self.known_flow_acc = testing.ESRI_FLOW_ACC.copy()
+
 
