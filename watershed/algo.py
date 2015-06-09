@@ -14,7 +14,7 @@ DIR_MAP = dict(zip(range(9), [32, 64, 128, 16, -1, 1, 8, 4, 2]))
 FLOWS_IN = numpy.array([2, 4, 8, 1, numpy.nan, 16, 128, 64, 32])
 
 
-def _stack_neighbors(topo, *padargs, **padkwargs):
+def _stack_neighbors(topo, radius=1, **padkwargs):
     '''Create a MxNx9 array of neighbors
 
     Creates a MxNx9 array where each layer represents all of the
@@ -25,7 +25,10 @@ def _stack_neighbors(topo, *padargs, **padkwargs):
     ----------
     topo : numpy array (MxN)
         An array represeting a digital elevation model (DEM)
-    *padargs, **padkwargs : optional parameters
+    radius : int
+        Search radius for stacking the neighbors. A radius = 1 implies
+        all eight immediately adjacent cells (plus the actual cell)
+    **padkwargs : optional parameters
         Positional and keyword arguments padded to numpy.pad
 
     Returns
@@ -35,20 +38,39 @@ def _stack_neighbors(topo, *padargs, **padkwargs):
         returns the block cells adjacent to and including
         `topo[row, col]`
 
+    See Also
+    --------
+    numpy.pad
+    http://goo.gl/Y3h8ti
 
     '''
-    padded = numpy.pad(topo, *padargs, **padkwargs)
-    blocked = numpy.dstack([
-        padded[0:-2, 0:-2], # upper left
-        padded[0:-2, 1:-1], # upper center...
-        padded[0:-2, 2:],
-        padded[1:-1, 0:-2], # middle left...
-        padded[1:-1, 1:-1],
-        padded[1:-1, 2:],
-        padded[2:, 0:-2],   # lower left ...
-        padded[2:, 1:-1],
-        padded[2:, 2:],
-    ])
+
+    mode = padkwargs.pop('mode')
+    if mode == 'constant':
+        pad_width = ((radius, radius), (radius, radius))
+    elif mode == 'edge':
+        pad_width = radius
+    else:
+        raise NotImplementedError("only 'edge' and 'constant' modes are supported")
+
+    padded = numpy.pad(topo, pad_width=pad_width, mode=mode, **padkwargs)
+
+    M, N = padded.shape
+    width = radius * 2 + 1
+    row_length = N - width + 1
+    col_length = M - width + 1
+
+    # Linear indices for the starting width-by-width block
+    idx1 = numpy.arange(width)[:, None]*N + numpy.arange(width)
+
+    # Offset (from the starting block indices) linear indices for all the blocks
+    idx2 = numpy.arange(col_length)[:, None]*N + numpy.arange(row_length)
+
+    # Finally, get the linear indices for all blocks
+    all_idx = idx1.ravel()[None, None, :] + idx2[:, :, None]
+
+    # Index into padded for the final output
+    blocked = padded.ravel()[all_idx]
 
     return blocked
 
@@ -81,7 +103,7 @@ def _adjacent_slopes(topo):
     rows, cols = topo.shape
 
     # make 3-D array of each cell's neighbors
-    blocks = _stack_neighbors(topo, mode='edge', pad_width=1)
+    blocks = _stack_neighbors(topo, radius=1, mode='edge')
 
     # change in elevation (dz/dx)
     drop = topo.reshape(rows, cols, 1) - blocks
@@ -151,7 +173,7 @@ def fill_sinks(topo, copy=True):
         _topo = topo
 
     sinks = _mark_sinks(_topo)
-    blocks = _stack_neighbors(_topo, mode='edge', pad_width=1)
+    blocks = _stack_neighbors(_topo, radius=1, mode='edge')
 
     # return if there are no sinks to fill
     if sinks.sum() == 0:
@@ -342,7 +364,7 @@ def trace_upstream(flow_dir, row, col):
     is_upstream = numpy.zeros_like(flow_dir)
 
     # create the neighborhoods
-    blocks = _stack_neighbors(flow_dir, ((1, 1), (1, 1)), mode='constant')
+    blocks = _stack_neighbors(flow_dir, radius=1, mode='constant')
 
     _trace_upstream(flow_dir, blocks, is_upstream, row, col)
 

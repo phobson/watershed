@@ -7,23 +7,77 @@ import numpy.testing as nptest
 from watershed import algo
 from watershed.testing import testing
 
-def test__stack_neighbors():
-    arr = numpy.arange(6).reshape(2, 3)
-    blocks = algo._stack_neighbors(arr, mode='edge', pad_width=1)
+class test__stack_neighbors(object):
+    def setup(self):
+        self.arr = numpy.arange(10, 10+6).reshape(2, 3)
 
-    known_blocks = numpy.array([
-        [
-            [0, 0, 1, 0, 0, 1, 3, 3, 4],
-            [0, 1, 2, 0, 1, 2, 3, 4, 5],
-            [1, 2, 2, 1, 2, 2, 4, 5, 5]
-        ], [
-            [0, 0, 1, 3, 3, 4, 3, 3, 4],
-            [0, 1, 2, 3, 4, 5, 3, 4, 5],
-            [1, 2, 2, 4, 5, 5, 4, 5, 5]
-        ]
-    ])
+        self.known_edge_blocks1 = numpy.array([
+            [
+                [10, 10, 11, 10, 10, 11, 13, 13, 14],
+                [10, 11, 12, 10, 11, 12, 13, 14, 15],
+                [11, 12, 12, 11, 12, 12, 14, 15, 15]
+            ], [
+                [10, 10, 11, 13, 13, 14, 13, 13, 14],
+                [10, 11, 12, 13, 14, 15, 13, 14, 15],
+                [11, 12, 12, 14, 15, 15, 14, 15, 15]
+            ]
+        ])
 
-    nptest.assert_array_equal(blocks, known_blocks)
+        self.known_edge_blocks2 = numpy.array([
+            [
+                [10, 10, 10, 11, 12, 10, 10, 10, 11, 12, 10, 10, 10, 11, 12, 13, 13, 13, 14, 15, 13, 13, 13, 14, 15],
+                [10, 10, 11, 12, 12, 10, 10, 11, 12, 12, 10, 10, 11, 12, 12, 13, 13, 14, 15, 15, 13, 13, 14, 15, 15],
+                [10, 11, 12, 12, 12, 10, 11, 12, 12, 12, 10, 11, 12, 12, 12, 13, 14, 15, 15, 15, 13, 14, 15, 15, 15]
+            ], [
+                [10, 10, 10, 11, 12, 10, 10, 10, 11, 12, 13, 13, 13, 14, 15, 13, 13, 13, 14, 15, 13, 13, 13, 14, 15],
+                [10, 10, 11, 12, 12, 10, 10, 11, 12, 12, 13, 13, 14, 15, 15, 13, 13, 14, 15, 15, 13, 13, 14, 15, 15],
+                [10, 11, 12, 12, 12, 10, 11, 12, 12, 12, 13, 14, 15, 15, 15, 13, 14, 15, 15, 15, 13, 14, 15, 15, 15]
+            ]
+        ])
+
+        self.known_constant_blocks1 = numpy.array([
+            [
+                [ 0,  0,  0,  0, 10, 11,  0, 13, 14],
+                [ 0,  0,  0, 10, 11, 12, 13, 14, 15],
+                [ 0,  0,  0, 11, 12,  0, 14, 15,  0]
+            ], [
+                [ 0, 10, 11,  0, 13, 14,  0,  0,  0],
+                [10, 11, 12, 13, 14, 15,  0,  0,  0],
+                [11, 12,  0, 14, 15,  0,  0,  0,  0]
+            ]
+        ])
+
+        self.known_constant_blocks2 = numpy.array([
+            [
+                [ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 10, 11, 12,  0,  0, 13, 14, 15,  0,  0,  0,  0,  0],
+                [ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 10, 11, 12,  0,  0, 13, 14, 15,  0,  0,  0,  0,  0,  0],
+                [ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 10, 11, 12,  0,  0, 13, 14, 15,  0,  0,  0,  0,  0,  0,  0]
+            ], [
+                [ 0,  0,  0,  0,  0,  0,  0, 10, 11, 12,  0,  0, 13, 14, 15,  0, 0,  0,  0,  0,  0,  0,  0,  0,  0],
+                [ 0,  0,  0,  0,  0,  0, 10, 11, 12,  0,  0, 13, 14, 15,  0,  0, 0,  0,  0,  0,  0,  0,  0,  0,  0],
+                [ 0,  0,  0,  0,  0, 10, 11, 12,  0,  0, 13, 14, 15,  0,  0,  0, 0,  0,  0,  0,  0,  0,  0,  0,  0]
+            ]
+        ])
+
+    def test_edge_blocks1(self):
+        blocks = algo._stack_neighbors(self.arr, radius=1, mode='edge')
+        nptest.assert_array_equal(blocks, self.known_edge_blocks1)
+
+    def test_edge_blocks2(self):
+        blocks = algo._stack_neighbors(self.arr, radius=2, mode='edge')
+        nptest.assert_array_equal(blocks, self.known_edge_blocks2)
+
+    def test_constant_blocks1(self):
+        blocks = algo._stack_neighbors(self.arr, radius=1, mode='constant')
+        nptest.assert_array_equal(blocks, self.known_constant_blocks1)
+
+    def test_constant_blocks2(self):
+        blocks = algo._stack_neighbors(self.arr, radius=2, mode='constant')
+        nptest.assert_array_equal(blocks, self.known_constant_blocks2)
+
+    @nt.raises(NotImplementedError)
+    def test_bad_mode(self):
+        blocks = algo._stack_neighbors(self.arr, radius=2, mode='junk')
 
 
 def test__adjacent_slopes():
