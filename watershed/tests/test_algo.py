@@ -9,8 +9,7 @@ from watershed.testing import testing
 
 class test__stack_neighbors(object):
     def setup(self):
-        constant = 10
-        self.arr = numpy.arange(6).reshape(2, 3) + constant
+        self.arr = numpy.arange(10, 10+6).reshape(2, 3)
 
         self.known_edge_blocks1 = numpy.array([
             [
@@ -75,6 +74,10 @@ class test__stack_neighbors(object):
     def test_constant_blocks2(self):
         blocks = algo._stack_neighbors(self.arr, radius=2, mode='constant')
         nptest.assert_array_equal(blocks, self.known_constant_blocks2)
+
+    @nt.raises(NotImplementedError)
+    def test_bad_mode(self):
+        blocks = algo._stack_neighbors(self.arr, radius=2, mode='junk')
 
 
 def test__adjacent_slopes():
