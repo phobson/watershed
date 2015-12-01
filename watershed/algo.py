@@ -15,7 +15,8 @@ FLOWS_IN = numpy.array([2, 4, 8, 1, numpy.nan, 16, 128, 64, 32])
 
 
 def _stack_neighbors(topo, radius=1, **padkwargs):
-    '''Create a MxNx9 array of neighbors
+    """ Create a MxNx9 array of neighbors for each element of a MxN
+    array.
 
     Creates a MxNx9 array where each layer represents all of the
     adjacent values at a give row/col. Input array is edge padded to
@@ -41,9 +42,12 @@ def _stack_neighbors(topo, radius=1, **padkwargs):
     See Also
     --------
     numpy.pad
-    http://goo.gl/Y3h8ti
 
-    '''
+    References
+    ----------
+    `Stack Overflow <http://goo.gl/Y3h8ti>`_
+
+    """
 
     mode = padkwargs.pop('mode')
     if mode == 'constant':
@@ -53,9 +57,14 @@ def _stack_neighbors(topo, radius=1, **padkwargs):
     else:
         raise NotImplementedError("only 'edge' and 'constant' modes are supported")
 
+    # pad the edges
     padded = numpy.pad(topo, pad_width=pad_width, mode=mode, **padkwargs)
 
+    # new rows and cols count
     M, N = padded.shape
+
+    # width is typically 3 -- length of each of
+    # block that defines the neighbors
     width = radius * 2 + 1
     row_length = N - width + 1
     col_length = M - width + 1
@@ -76,7 +85,7 @@ def _stack_neighbors(topo, radius=1, **padkwargs):
 
 
 def _adjacent_slopes(topo):
-    '''Compute the slope from each to cell to all of its neighbors
+    """ Compute the slope from each to cell to all of its neighbors.
 
     Parameters
     ----------
@@ -95,9 +104,9 @@ def _adjacent_slopes(topo):
 
     See Also
     --------
-    watershed._stack_neighbors
+    watershed.algo._stack_neighbors
 
-    '''
+    """
 
     # initial array shape
     rows, cols = topo.shape
@@ -115,7 +124,7 @@ def _adjacent_slopes(topo):
 
 
 def _mark_sinks(topo):
-    '''Marks sink areas in a DEM
+    """ Marks sink areas in a DEM.
 
     Parameters
     ----------
@@ -127,7 +136,7 @@ def _mark_sinks(topo):
     sink : numpy array
         Bool array. True value indicate cell is (in) a sink.
 
-    '''
+    """
 
     # compute the slopes in every direction at each cell
     slope = _adjacent_slopes(topo)
@@ -143,8 +152,7 @@ def _mark_sinks(topo):
 
 
 def fill_sinks(topo, copy=True):
-    '''
-    Fills sink areas in a DEM with the lowest adjacent elevation
+    """ Fills sink areas in a DEM with the lowest adjacent elevation.
 
     Parameters
     ----------
@@ -161,11 +169,11 @@ def fill_sinks(topo, copy=True):
 
     See Also
     --------
-    watershed.flow_direction_d8
-    watershed.trace_upstream
-    watershed.flow_accumulation
+    watershed.algo.flow_direction_d8
+    watershed.algo.trace_upstream
+    watershed.algo.flow_accumulation
 
-    '''
+    """
 
     if copy:
         _topo = topo.copy()
@@ -200,11 +208,12 @@ def fill_sinks(topo, copy=True):
 
 
 def _process_edges(slope, direction):
-    '''Handles edges and corners of the a flow-direction array.
+    """ Handles edges and corners of the a flow-direction array.
 
     When edges and corners do not flow into the interior of the
     array, they need to flow out of the array.
-    '''
+
+    """
 
     # shape of the raster
     rows, cols = direction.shape
@@ -244,7 +253,7 @@ def _process_edges(slope, direction):
 
 
 def flow_direction_d8(topo):
-    '''Compute the flow direction of topographic data
+    """ Compute the flow direction of topographic data.
 
     Flow Directions from cell X:
      32 64 128
@@ -269,9 +278,10 @@ def flow_direction_d8(topo):
 
     References
     --------
-    http://onlinelibrary.wiley.com/doi/10.1029/96WR03137/pdf
+    `<http://onlinelibrary.wiley.com/doi/10.1029/96WR03137/pdf>`_
 
-    '''
+    """
+
     # inital array shape
     rows, cols = topo.shape
 
@@ -287,7 +297,7 @@ def flow_direction_d8(topo):
 
 
 def _trace_upstream(flow_dir, blocks, is_upstream, row, col):
-    '''Recursively traces all cells upstream from the specified cell
+    """ Recursively traces all cells upstream from the specified cell.
 
     Parameters
     ----------
@@ -307,18 +317,16 @@ def _trace_upstream(flow_dir, blocks, is_upstream, row, col):
     -------
     None
 
-    Notes
-    -----
-     - Acts in-place on `is_upstream`
-     - called by the public function `trace_upstream`
+     .. note: Acts in-place on `is_upstream`
+     .. note: Called by the public function `trace_upstream`
 
     See Also
     --------
-    flow_direction_d8
-    _stack_neighbors
-    trace_upstream
+    watershed.algo.flow_direction_d8
+    watershed.algo._stack_neighbors
+    watershed.algo.trace_upstream
 
-    '''
+    """
 
     if is_upstream[row, col] == 0:
 
@@ -337,7 +345,7 @@ def _trace_upstream(flow_dir, blocks, is_upstream, row, col):
 
 
 def trace_upstream(flow_dir, row, col):
-    '''Trace the upstream network from a cell based on flow direction
+    """ Trace the upstream network from a cell based on flow direction.
 
     Parameters
     ----------
@@ -355,11 +363,11 @@ def trace_upstream(flow_dir, row, col):
 
     See Also
     --------
-    watershed.fill_sinks
-    watershed.flow_direction_d8
-    watershed.flow_accumulation
+    watershed.algo.fill_sinks
+    watershed.algo.flow_direction_d8
+    watershed.algo.flow_accumulation
 
-    '''
+    """
 
     is_upstream = numpy.zeros_like(flow_dir)
 
@@ -372,7 +380,7 @@ def trace_upstream(flow_dir, row, col):
 
 
 def mask_topo(topo, row, col, zoom_factor=1, mask_upstream=False):
-    '''Block out all cells that are not upstream from a specific cell
+    """ Block out all cells that are not upstream from a specific cell.
 
     Parameters
     ----------
@@ -395,7 +403,8 @@ def mask_topo(topo, row, col, zoom_factor=1, mask_upstream=False):
         Masked array where all cells not upstream of `topo[row, col]`
         are masked out.
 
-    '''
+    """
+
     # apply the zoom_factor
     _topo = ndimage.zoom(topo, zoom_factor, order=0)
     _row, _col = map(lambda x: numpy.floor(x * zoom_factor), (row, col))
@@ -417,7 +426,7 @@ def mask_topo(topo, row, col, zoom_factor=1, mask_upstream=False):
 
 
 def flow_accumulation(flow_dir):
-    '''Compute the flow accumulation from flow directions
+    """ Compute the flow accumulation from flow directions.
 
     Determines the number of cells flowing into every cell
     in an array represeting flow direction.
@@ -435,15 +444,15 @@ def flow_accumulation(flow_dir):
 
     See Also
     --------
-    watershed.fill_sinks
-    watershed.flow_direction_d8
-    watershed.trace_upstream
+    watershed.algo.fill_sinks
+    watershed.algo.flow_direction_d8
+    watershed.algo.trace_upstream
 
     References
     ----------
-    http://goo.gl/57r7SU
+    `Esri's flow accumulation example <http://goo.gl/57r7SU>`_
 
-    '''
+    """
 
     # initial the output array
     flow_acc = numpy.zeros_like(flow_dir)
