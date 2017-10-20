@@ -6,7 +6,7 @@ import pytest
 ## ESRI Example Dataset
 # see: http://goo.gl/qadMGm and
 # http://goo.gl/57r7SU
-@pytest.mark.fixture(scope='module')
+@pytest.fixture(scope='module')
 def ESRI_TOPO():
     return numpy.array([
         [78., 72., 69., 71., 58., 49.],
@@ -17,7 +17,8 @@ def ESRI_TOPO():
         [74., 53., 34., 12., 11., 12.],
     ])
 
-@pytest.mark.fixture(scope='module')
+
+@pytest.fixture(scope='module')
 def ESRI_FLOW_DIR_D8():
     return numpy.array([
         [  2,   2,   2,   4,   4,   8],
@@ -28,7 +29,8 @@ def ESRI_FLOW_DIR_D8():
         [  1,   1,   1,   1,   4,  16]
     ])
 
-@pytest.mark.fixture(scope='module')
+
+@pytest.fixture(scope='module')
 def ESRI_FLOW_ACC():
     return numpy.array([
         [ 0,  0,  0,  0,  0,  0],
@@ -40,7 +42,7 @@ def ESRI_FLOW_ACC():
     ])
 
 
-@pytest.mark.fixture(scope='module')
+@pytest.fixture(scope='module')
 def ESRI_UPSTREAM_HIGH():
     return numpy.array([
         [0, 1, 1, 1, 0, 0],
@@ -52,7 +54,7 @@ def ESRI_UPSTREAM_HIGH():
     ])
 
 
-@pytest.mark.fixture(scope='module')
+@pytest.fixture(scope='module')
 def ESRI_UPSTREAM_LOW():
     return numpy.array([
         [1, 1, 1, 1, 1, 1],
@@ -62,66 +64,3 @@ def ESRI_UPSTREAM_LOW():
         [0, 0, 0, 0, 0, 0],
         [0, 0, 0, 0, 0, 0],
     ])
-
-
-
-## sinks and stuff
-@pytest.mark.fixture(scope='module')
-def basic_slope_single_sink():
-    return numpy.array([
-        [20, 18, 16, 14, 12, 11],
-        [20, 18, 16, 14, 12, 11],
-        [20, 18, 10, 14, 12, 11],
-        [20, 18, 16, 14, 12, 11],
-        [20, 18, 16, 14, 12, 11],
-        [20, 18, 16, 14, 12, 11],
-    ])
-
-
-@pytest.mark.fixture(scope='module')
-def basic_slope_quad_sink():
-    return numpy.array([
-        [20, 18, 16, 14, 12, 11],
-        [20, 18, 16, 14, 12, 11],
-        [20, 18, 10, 10, 12, 11],
-        [20, 18, 10, 10, 12, 11],
-        [20, 18, 16, 14, 12, 11],
-        [20, 18, 16, 14, 12, 11],
-    ])
-
-
-@pytest.mark.fixture(scope='module')
-def basic_slope_filled():
-    return numpy.array([
-        [20, 18, 16, 14, 12, 11],
-        [20, 18, 16, 14, 12, 11],
-        [20, 18, 16, 14, 12, 11],
-        [20, 18, 16, 14, 12, 11],
-        [20, 18, 16, 14, 12, 11],
-        [20, 18, 16, 14, 12, 11],
-    ])
-
-
-@pytest.mark.fixture(scope='module')
-def basic_slope_big_sink():
-    return numpy.array([
-        [20, 18, 16, 14, 12, 11],
-        [20, 10, 10, 10, 10, 11],
-        [20, 10, 10, 10, 10, 11],
-        [20, 10, 10, 10, 10, 11],
-        [20, 10, 10, 10, 10, 11],
-        [20, 18, 16, 14, 12, 11],
-    ])
-
-
-@pytest.mark.fixture(scope='module')
-def basic_slope_filled_big_sink():
-    return numpy.array([
-        [20, 18, 16, 14, 12, 11],
-        [20, 18, 16, 14, 12, 11],
-        [20, 20, 16, 14, 12, 11],
-        [20, 20, 16, 14, 12, 11],
-        [20, 18, 16, 14, 12, 11],
-        [20, 18, 16, 14, 12, 11],
-    ])
-

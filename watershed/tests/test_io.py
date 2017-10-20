@@ -1,15 +1,17 @@
 import numpy
 
-import nose.tools as nt
+import pytest
 import numpy.testing as nptest
 
 from watershed import io
+from watershed.testing import raises
 
-class test_load_example(object):
-    def test_good(self):
-        data = io.load_example('powell_butte')
-        nt.assert_true(isinstance(data, numpy.ndarray))
 
-    @nt.raises(ValueError)
-    def test_bad(self):
-        data = io.load_example('junk')
+@pytest.mark.parametrize(('file', 'error'), [
+    ('powell_butte', None), 
+    ('junk', ValueError)
+])
+def test_load_example(file, error):
+    with raises(error):
+        data = io.load_example(file)
+        assert isinstance(data, numpy.ndarray)
