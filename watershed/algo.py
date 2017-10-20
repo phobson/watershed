@@ -5,13 +5,20 @@ from collections import defaultdict
 import numpy
 from scipy import ndimage
 
+
 DISTANCE = numpy.sqrt([
     2., 1., 2.,
     1., 1., 1.,
     2., 1., 2.
 ])
+
 DIR_MAP = dict(zip(range(9), [32, 64, 128, 16, -1, 1, 8, 4, 2]))
-FLOWS_IN = numpy.array([2, 4, 8, 1, numpy.nan, 16, 128, 64, 32])
+
+FLOWS_IN = numpy.array([
+      2.0,       4.0,  8.0,
+      1.0, numpy.nan, 16.0,
+    128.0,      64.0, 32.0,
+])
 
 
 def _stack_neighbors(topo, radius=1, **padkwargs):
@@ -151,6 +158,16 @@ def _mark_sinks(topo):
     return sinks
 
 
+def interpolate_sinks(topo, copy=True):
+    if copy:
+        _topo = topo.copy()
+    else:
+        _topo = topo
+
+    sinks = _mark_sinks(_topo)
+    blocks = _stack_neighbors(_topo, radius=1, mode='edge')
+
+
 def fill_sinks(topo, copy=True):
     """ Fills sink areas in a DEM with the lowest adjacent elevation.
 
@@ -181,12 +198,13 @@ def fill_sinks(topo, copy=True):
         _topo = topo
 
     sinks = _mark_sinks(_topo)
-    blocks = _stack_neighbors(_topo, radius=1, mode='edge')
 
     # return if there are no sinks to fill
     if sinks.sum() == 0:
         return _topo
     else:
+        blocks = _stack_neighbors(_topo, radius=1, mode='edge')
+        _topo[sinks] = np.nan
         # loop through each sink and set its elevation to that of
         # its lowest neighbor
         rows, cols = numpy.where(sinks)
@@ -338,7 +356,7 @@ def _trace_upstream(flow_dir, blocks, is_upstream, row, col):
         neighbors = blocks[row, col, :].reshape(3, 3)
 
         # indices of neighbors that flow into this cell
-        matches = numpy.where(neighbors == FLOWS_IN.reshape(3, 3))
+        matches = numpy.where(neighbors == FLOWS_IN)
 
         # recurse on all of the neighbors
         for rn, cn in zip(*matches):
