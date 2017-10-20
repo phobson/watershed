@@ -327,7 +327,8 @@ def _trace_upstream(flow_dir, blocks, is_upstream, row, col):
     watershed.algo.trace_upstream
 
     """
-
+    row = int(row)
+    col = int(col)
     if is_upstream[row, col] == 0:
 
         # we consider a cell to be upstream of itself
