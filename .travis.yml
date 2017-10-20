@@ -2,26 +2,16 @@ language: python
 
 matrix:
   include:
-    - python: 2.7
-      env:
-        - COVERAGE=false
-        - NUMPY=1.7
-    - python: 2.7
-      env:
-        - COVERAGE=false
-        - NUMPY=1.8
-    - python: 2.7
-      env:
-        - COVERAGE=false
-        - NUMPY=1.9
     - python: 3.4
       env:
         - COVERAGE=false
-        - NUMPY=1.8
-    - python: 3.4
+    - python: 3.5
+      env:
+        - COVERAGE=false
+
+    - python: 3.6
       env:
         - COVERAGE=true
-        - NUMPY=1.9
 
 before_install:
 
@@ -38,11 +28,11 @@ install:
   # We just set up a conda environment with the right Python version. This
   # should not need changing.
 
-  - conda create --yes -n test python=$TRAVIS_PYTHON_VERSION
+  - conda create --yes -n test python=$TRAVIS_PYTHON_VERSION --channel=conda-forge
   - source activate test
   #- conda config --add channels phobson
-  - conda install --yes numpy=$NUMPY matplotlib scipy nose
-  - conda install --yes coverage docopt requests pyyaml
+  - conda install --yes numpy matplotlib scipy nose --channel=conda-forge
+  - conda install --yes coverage docopt requests pyyaml --channel=conda-forge
   - pip install coveralls
   - pip install .
 
