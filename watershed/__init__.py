@@ -10,3 +10,9 @@ from .io import (
     load_example
 )
 
+from .tests import test
+
+
+__author__ = "Paul Hobson"
+__email__ = "pmhobson@gmail.com"
+__version__ = "0.1.0"

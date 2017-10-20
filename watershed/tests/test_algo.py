@@ -1,17 +1,17 @@
 import numpy
 from scipy import ndimage
 
-import nose.tools as nt
+import pytest
 import numpy.testing as nptest
 
 from watershed import algo
-from watershed.testing import testing
+from watershed.testing import raises
 
-class test__stack_neighbors(object):
-    def setup(self):
-        self.arr = numpy.arange(10, 10+6).reshape(2, 3)
 
-        self.known_edge_blocks1 = numpy.array([
+@pytest.fixture
+def expected_stacks():
+    expected = {
+        (1, 'edge'): numpy.array([
             [
                 [10, 10, 11, 10, 10, 11, 13, 13, 14],
                 [10, 11, 12, 10, 11, 12, 13, 14, 15],
@@ -21,9 +21,8 @@ class test__stack_neighbors(object):
                 [10, 11, 12, 13, 14, 15, 13, 14, 15],
                 [11, 12, 12, 14, 15, 15, 14, 15, 15]
             ]
-        ])
-
-        self.known_edge_blocks2 = numpy.array([
+        ]),
+        (2, 'edge'): numpy.array([
             [
                 [10, 10, 10, 11, 12, 10, 10, 10, 11, 12, 10, 10, 10, 11, 12, 13, 13, 13, 14, 15, 13, 13, 13, 14, 15],
                 [10, 10, 11, 12, 12, 10, 10, 11, 12, 12, 10, 10, 11, 12, 12, 13, 13, 14, 15, 15, 13, 13, 14, 15, 15],
@@ -33,9 +32,8 @@ class test__stack_neighbors(object):
                 [10, 10, 11, 12, 12, 10, 10, 11, 12, 12, 13, 13, 14, 15, 15, 13, 13, 14, 15, 15, 13, 13, 14, 15, 15],
                 [10, 11, 12, 12, 12, 10, 11, 12, 12, 12, 13, 14, 15, 15, 15, 13, 14, 15, 15, 15, 13, 14, 15, 15, 15]
             ]
-        ])
-
-        self.known_constant_blocks1 = numpy.array([
+        ]),
+        (1, 'constant'): numpy.array([
             [
                 [ 0,  0,  0,  0, 10, 11,  0, 13, 14],
                 [ 0,  0,  0, 10, 11, 12, 13, 14, 15],
@@ -45,9 +43,8 @@ class test__stack_neighbors(object):
                 [10, 11, 12, 13, 14, 15,  0,  0,  0],
                 [11, 12,  0, 14, 15,  0,  0,  0,  0]
             ]
-        ])
-
-        self.known_constant_blocks2 = numpy.array([
+        ]),
+        (2, 'constant'): numpy.array([
             [
                 [ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 10, 11, 12,  0,  0, 13, 14, 15,  0,  0,  0,  0,  0],
                 [ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 10, 11, 12,  0,  0, 13, 14, 15,  0,  0,  0,  0,  0,  0],
@@ -57,27 +54,83 @@ class test__stack_neighbors(object):
                 [ 0,  0,  0,  0,  0,  0, 10, 11, 12,  0,  0, 13, 14, 15,  0,  0, 0,  0,  0,  0,  0,  0,  0,  0,  0],
                 [ 0,  0,  0,  0,  0, 10, 11, 12,  0,  0, 13, 14, 15,  0,  0,  0, 0,  0,  0,  0,  0,  0,  0,  0,  0]
             ]
-        ])
+        ]),
+    }
+    return expected
 
-    def test_edge_blocks1(self):
-        blocks = algo._stack_neighbors(self.arr, radius=1, mode='edge')
-        nptest.assert_array_equal(blocks, self.known_edge_blocks1)
 
-    def test_edge_blocks2(self):
-        blocks = algo._stack_neighbors(self.arr, radius=2, mode='edge')
-        nptest.assert_array_equal(blocks, self.known_edge_blocks2)
+# sinks and stuff
+@pytest.fixture
+def basic_slope_single_sink():
+    return numpy.array([
+        [20, 18, 16, 14, 12, 11],
+        [20, 18, 16, 14, 12, 11],
+        [20, 18, 10, 14, 12, 11],
+        [20, 18, 16, 14, 12, 11],
+        [20, 18, 16, 14, 12, 11],
+        [20, 18, 16, 14, 12, 11],
+    ])
 
-    def test_constant_blocks1(self):
-        blocks = algo._stack_neighbors(self.arr, radius=1, mode='constant')
-        nptest.assert_array_equal(blocks, self.known_constant_blocks1)
 
-    def test_constant_blocks2(self):
-        blocks = algo._stack_neighbors(self.arr, radius=2, mode='constant')
-        nptest.assert_array_equal(blocks, self.known_constant_blocks2)
+@pytest.fixture
+def basic_slope_quad_sink():
+    return numpy.array([
+        [20, 18, 16, 14, 12, 11],
+        [20, 18, 16, 14, 12, 11],
+        [20, 18, 10, 10, 12, 11],
+        [20, 18, 10, 10, 12, 11],
+        [20, 18, 16, 14, 12, 11],
+        [20, 18, 16, 14, 12, 11],
+    ])
 
-    @nt.raises(NotImplementedError)
-    def test_bad_mode(self):
-        blocks = algo._stack_neighbors(self.arr, radius=2, mode='junk')
+
+@pytest.fixture
+def basic_slope_filled():
+    return numpy.array([
+        [20, 18, 16, 14, 12, 11],
+        [20, 18, 16, 14, 12, 11],
+        [20, 18, 16, 14, 12, 11],
+        [20, 18, 16, 14, 12, 11],
+        [20, 18, 16, 14, 12, 11],
+        [20, 18, 16, 14, 12, 11],
+    ])
+
+
+@pytest.fixture
+def basic_slope_big_sink():
+    return numpy.array([
+        [20, 18, 16, 14, 12, 11],
+        [20, 10, 10, 10, 10, 11],
+        [20, 10, 10, 10, 10, 11],
+        [20, 10, 10, 10, 10, 11],
+        [20, 10, 10, 10, 10, 11],
+        [20, 18, 16, 14, 12, 11],
+    ])
+
+
+@pytest.fixture
+def basic_slope_filled_big_sink():
+    return numpy.array([
+        [20, 18, 16, 14, 12, 11],
+        [20, 18, 16, 14, 12, 11],
+        [20, 20, 16, 14, 12, 11],
+        [20, 20, 16, 14, 12, 11],
+        [20, 18, 16, 14, 12, 11],
+        [20, 18, 16, 14, 12, 11],
+    ])
+
+
+@pytest.mark.parametrize('radius', [1, 2])
+@pytest.mark.parametrize(('mode', 'error'), [
+    ('edge', None),
+    ('constant', None),
+    ('junk', NotImplementedError)
+])
+def test__stack_neighbors(radius, mode, expected_stacks, error):
+    arr = numpy.arange(10, 10 + 6).reshape(2, 3)
+    with raises(error):
+        blocks = algo._stack_neighbors(arr, radius=radius, mode=mode)
+        nptest.assert_array_equal(blocks, expected_stacks[(radius, mode)])
 
 
 def test__adjacent_slopes():
@@ -142,167 +195,111 @@ def test__adjacent_slopes():
     nptest.assert_array_almost_equal(slopes, known_slopes, decimal=3)
 
 
-##
-## Fill sink tests
-class baseFillSink_Mixin(object):
-    def test_filler(self):
-        filled = algo.fill_sinks(self.topo, copy=True)
-        nptest.assert_array_equal(filled, self.known_filled)
-
-    def test_filler_no_copy(self):
-        topo = self.topo.copy()
-        filled = algo.fill_sinks(topo, copy=False)
-        nptest.assert_array_equal(topo, filled)
-
-    def test_marker(self):
-        sinks = algo._mark_sinks(self.topo)
-        nptest.assert_array_equal(sinks, self.known_sinks)
+# Mark and Fill sink tests
+@pytest.mark.parametrize('topo', [
+    basic_slope_single_sink(),
+    basic_slope_quad_sink(),
+    basic_slope_big_sink(),
+])
+def test__mark_sinks(topo):
+    sinks = algo._mark_sinks(topo)
+    expected = topo == topo.min()
+    nptest.assert_array_equal(sinks, expected)
 
 
-class test_fill_sinks_single(baseFillSink_Mixin):
-    def setup(self):
-        self.topo = testing.basic_slope_single_sink.copy()
-        self.known_sinks = self.topo == self.topo.min()
-        self.known_filled = testing.basic_slope_filled.copy()
+@pytest.mark.parametrize(('topo', 'expected'), [
+    (basic_slope_single_sink(), basic_slope_filled()),
+    (basic_slope_quad_sink(), basic_slope_filled()),
+    (basic_slope_big_sink(), basic_slope_filled_big_sink())
+])
+def test_fill_sinks_filler(topo, expected):
+    filled = algo.fill_sinks(topo, copy=True)
+    nptest.assert_array_equal(filled, expected)
 
 
-class test_fill_sinks_quad(baseFillSink_Mixin):
-    def setup(self):
-        self.topo = testing.basic_slope_quad_sink.copy()
-        self.known_sinks = self.topo == self.topo.min()
-        self.known_filled = testing.basic_slope_filled.copy()
+@pytest.mark.parametrize('topo', [
+    basic_slope_single_sink(),
+    basic_slope_quad_sink(),
+    basic_slope_big_sink()
+])
+def test_fille_sinks_no_copy(topo):
+    topo = topo.copy()
+    filled = algo.fill_sinks(topo, copy=False)
+    nptest.assert_array_equal(topo, filled)
 
 
-class test_fill_sinks_big(baseFillSink_Mixin):
-    def setup(self):
-        self.topo = testing.basic_slope_big_sink.copy()
-        self.known_sinks = self.topo == self.topo.min()
-        self.known_filled = testing.basic_slope_filled_big_sink.copy()
+# Process edges
+@pytest.mark.parametrize(('sink', 'error'), [
+    (False, None),
+    (True, ValueError)
+])
+def test__process_edges(sink, error):
+    slope = numpy.ones((4, 7, 1))
+    mask = numpy.zeros_like(slope)
 
+    rows = numpy.array([0, 0, 0, 1, 2, 3, 3, 3, 3])
+    cols = numpy.array([0, 3, 6, 0, 6, 0, 2, 3, 6])
+    mask[rows, cols, :] = 1
 
-##
-## Process edges
-class test__process_edges(object):
-    def setup(self):
-        self._slope = numpy.ones((4, 7, 1))
-        self._mask = numpy.zeros_like(self._slope)
-
-        rows = numpy.array([0, 0, 0, 1, 2, 3, 3, 3, 3])
-        cols = numpy.array([0, 3, 6, 0, 6, 0, 2, 3, 6])
-        self._mask[rows, cols, :] = 1
-
-        self.direction = numpy.zeros_like(self._slope).sum(axis=2)
-
-        self.known_direction = numpy.array([
-            [32, 0, 0, 64, 0, 0, 128],
-            [16, 0, 0,  0, 0, 0,   0],
-            [ 0, 0, 0,  0, 0, 0,   1],
-            [ 8, 0, 4,  4, 0, 0,   2]
-        ])
-
-    def test_nosink(self):
-        slope = numpy.ma.masked_array(self._slope, self._mask)
-        direction = algo._process_edges(slope, self.direction)
-        nptest.assert_array_equal(direction, self.known_direction)
-
-    @nt.raises(ValueError)
-    def test_sink(self):
-        mask = self._mask.copy()
+    if sink:
         mask[2, 4] = 1
-        slope = numpy.ma.masked_array(self._slope, mask)
-        direction = algo._process_edges(slope, self.direction)
+
+    slope = numpy.ma.masked_array(slope, mask)
+
+    raw_direction = numpy.zeros_like(slope).sum(axis=2)
+    expected_direction = numpy.array([
+        [32, 0, 0, 64, 0, 0, 128],
+        [16, 0, 0,  0, 0, 0,   0],
+        [ 0, 0, 0,  0, 0, 0,   1],
+        [ 8, 0, 4,  4, 0, 0,   2]
+    ])
+    with raises(error):
+        direction = algo._process_edges(slope, raw_direction)
+        nptest.assert_array_equal(direction, expected_direction)
 
 
-##
-## Flow Direction tests
-class baseFlowDir_Mixin(object):
-    def test_flow_dir_d8(self):
-        flow_dir = algo.flow_direction_d8(self.topo)
-        nptest.assert_array_equal(flow_dir, self.known_flow_dir_d8)
+# Flow Direction tests
+def test_flow_direction(ESRI_TOPO, ESRI_FLOW_DIR_D8):
+    flow_dir = algo.flow_direction_d8(ESRI_TOPO)
+    nptest.assert_array_equal(flow_dir, ESRI_FLOW_DIR_D8)
 
 
-class test_flow_direction_arcgis(baseFlowDir_Mixin):
-    def setup(self):
-        self.topo = testing.ESRI_TOPO.copy()
-        self.known_flow_dir_d8 = testing.ESRI_FLOW_DIR_D8.copy()
+# Trace Upstream Tests
+@pytest.mark.parametrize(('row', 'col'), [(2, 3), (3, 3)])
+def test_trace_upstream(row, col, ESRI_FLOW_DIR_D8, ESRI_UPSTREAM_LOW, ESRI_UPSTREAM_HIGH):
+    expected_upstream = {
+        (2, 3): ESRI_UPSTREAM_HIGH,
+        (3, 3): ESRI_UPSTREAM_LOW,
+    }
+    upstream = algo.trace_upstream(ESRI_FLOW_DIR_D8, row, col)
+    expected = expected_upstream[(row, col)]
+    nptest.assert_array_equal(upstream, expected)
 
 
-##
-## Trace Upstream Tests
-class baseTraceUpstream_Mixin(object):
-    def test_trace_upstream_high(self):
-        upstream = algo.trace_upstream(self.flow_dir, self.row_high, self.col_high)
-        nptest.assert_array_equal(upstream, self.known_upstream_high)
+# Masking Topo tests
+@pytest.mark.parametrize('upstream', [True, False])
+@pytest.mark.parametrize(('row', 'col'), [(2, 3), (3, 3)])
+@pytest.mark.parametrize('factor', [1, 2])
+def test_mask_upstream(row, col, upstream, factor, ESRI_TOPO,
+                       ESRI_UPSTREAM_LOW, ESRI_UPSTREAM_HIGH):
+    expected_upstream = {
+        (2, 3): ESRI_UPSTREAM_HIGH,
+        (3, 3): ESRI_UPSTREAM_LOW,
+    }
 
-    def test_trace_upstream_low(self):
-        upstream = algo.trace_upstream(self.flow_dir, self.row_low, self.col_low)
-        nptest.assert_array_equal(upstream, self.known_upstream_low)
+    masked_topo = algo.mask_topo(ESRI_TOPO, row // factor, col // factor,
+                                 zoom_factor=1. / factor,
+                                 mask_upstream=upstream)
 
+    expected_mask = expected_upstream[(row, col)]
+    if not upstream:
+        expected_mask = numpy.logical_not(expected_mask)
 
-class test_trace_upstream_arcgis(baseTraceUpstream_Mixin):
-    def setup(self):
-        self.flow_dir = testing.ESRI_FLOW_DIR_D8.copy()
-        self.row_high, self.col_high = (2, 3)
-        self.known_upstream_high = testing.ESRI_UPSTREAM_HIGH.copy()
-
-        self.row_low, self.col_low = (3, 3)
-        self.known_upstream_low = testing.ESRI_UPSTREAM_LOW.copy()
-
-
-##
-## Masking Topo tests
-class baseMaskUpstream_Mixin(object):
-    def test_mask_topo_upstream(self):
-        masked_topo = algo.mask_topo(self.topo, self.row_high, self.col_high,
-                                     zoom_factor=1./self.factor, mask_upstream=True)
-        expected = numpy.ma.masked_array(data=self.topo, mask=self.known_upstream_high)
-        nptest.assert_array_equal(masked_topo, expected)
-
-    def test_mask_topo_not_upstream(self):
-        masked_topo = algo.mask_topo(self.topo, self.row_high, self.col_high,
-                                     zoom_factor=1./self.factor, mask_upstream=False)
-        mask = numpy.logical_not(self.known_upstream_high)
-        expected = numpy.ma.masked_array(data=self.topo, mask=mask)
-        nptest.assert_array_equal(masked_topo, expected)
+    expected = numpy.ma.masked_array(data=ESRI_TOPO, mask=expected_mask)
+    nptest.assert_array_equal(masked_topo, expected)
 
 
-class test_mask_upstream_arcgis(baseMaskUpstream_Mixin):
-    def setup(self):
-        self.factor = 1.
-        self.order = 0
-        self.topo = testing.ESRI_TOPO.copy()
-        self.row_high, self.col_high = (2, 3)
-        self.known_upstream_high = testing.ESRI_UPSTREAM_HIGH.copy()
-
-        self.row_low, self.col_low = (3, 3)
-        self.known_upstream_low = testing.ESRI_UPSTREAM_LOW.copy()
-
-
-class test_mask_upstream_arcgis_zoomed(baseMaskUpstream_Mixin):
-    def setup(self):
-        self.factor = 2.
-        self.order = 0
-        self.topo = ndimage.zoom(testing.ESRI_TOPO.copy(), self.factor, order=self.order)
-        self.row_high, self.col_high = (2*self.factor, 3*self.factor)
-        self.known_upstream_high = ndimage.zoom(testing.ESRI_UPSTREAM_HIGH.copy(),
-                                                self.factor, order=self.order)
-
-        self.row_low, self.col_low = (3*self.factor, 3*self.factor)
-        self.known_upstream_low = ndimage.zoom(testing.ESRI_UPSTREAM_LOW.copy(),
-                                               self.factor, order=self.order)
-
-
-##
-## Flow Accumulation tests
-class baseFlowAccumulation_Mixin(object):
-    def test_flow_accumulation(self):
-        flow_acc = algo.flow_accumulation(self.flow_dir)
-        nptest.assert_array_equal(flow_acc, self.known_flow_acc)
-
-
-class test_flow_accumulation_arcgis(baseFlowAccumulation_Mixin):
-    def setup(self):
-        self.flow_dir = testing.ESRI_FLOW_DIR_D8.copy()
-        self.known_flow_acc = testing.ESRI_FLOW_ACC.copy()
-
-
+# Flow Accumulation tests
+def test_flow_accumulation_arcgis(ESRI_FLOW_DIR_D8, ESRI_FLOW_ACC):
+    flow_acc = algo.flow_accumulation(ESRI_FLOW_DIR_D8)
+    nptest.assert_array_equal(flow_acc, ESRI_FLOW_ACC)
