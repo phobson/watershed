@@ -8,7 +8,7 @@ from watershed.testing import raises
 
 
 @pytest.mark.parametrize(('file', 'error'), [
-    ('powell_butte', None), 
+    ('powell_butte', None),
     ('junk', ValueError)
 ])
 def test_load_example(file, error):

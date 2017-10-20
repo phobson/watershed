@@ -59,7 +59,7 @@ def expected_stacks():
     return expected
 
 
-## sinks and stuff
+# sinks and stuff
 @pytest.fixture
 def basic_slope_single_sink():
     return numpy.array([
@@ -120,7 +120,6 @@ def basic_slope_filled_big_sink():
     ])
 
 
-
 @pytest.mark.parametrize('radius', [1, 2])
 @pytest.mark.parametrize(('mode', 'error'), [
     ('edge', None),
@@ -128,7 +127,7 @@ def basic_slope_filled_big_sink():
     ('junk', NotImplementedError)
 ])
 def test__stack_neighbors(radius, mode, expected_stacks, error):
-    arr = numpy.arange(10, 10+6).reshape(2, 3)
+    arr = numpy.arange(10, 10 + 6).reshape(2, 3)
     with raises(error):
         blocks = algo._stack_neighbors(arr, radius=radius, mode=mode)
         nptest.assert_array_equal(blocks, expected_stacks[(radius, mode)])
@@ -196,8 +195,7 @@ def test__adjacent_slopes():
     nptest.assert_array_almost_equal(slopes, known_slopes, decimal=3)
 
 
-##
-## Mark and Fill sink tests
+# Mark and Fill sink tests
 @pytest.mark.parametrize('topo', [
     basic_slope_single_sink(),
     basic_slope_quad_sink(),
@@ -230,8 +228,7 @@ def test_fille_sinks_no_copy(topo):
     nptest.assert_array_equal(topo, filled)
 
 
-##
-## Process edges
+# Process edges
 @pytest.mark.parametrize(('sink', 'error'), [
     (False, None),
     (True, ValueError)
@@ -239,7 +236,7 @@ def test_fille_sinks_no_copy(topo):
 def test__process_edges(sink, error):
     slope = numpy.ones((4, 7, 1))
     mask = numpy.zeros_like(slope)
-    
+
     rows = numpy.array([0, 0, 0, 1, 2, 3, 3, 3, 3])
     cols = numpy.array([0, 3, 6, 0, 6, 0, 2, 3, 6])
     mask[rows, cols, :] = 1
@@ -261,16 +258,13 @@ def test__process_edges(sink, error):
         nptest.assert_array_equal(direction, expected_direction)
 
 
-
-##
-## Flow Direction tests
+# Flow Direction tests
 def test_flow_direction(ESRI_TOPO, ESRI_FLOW_DIR_D8):
     flow_dir = algo.flow_direction_d8(ESRI_TOPO)
     nptest.assert_array_equal(flow_dir, ESRI_FLOW_DIR_D8)
 
 
-##
-## Trace Upstream Tests
+# Trace Upstream Tests
 @pytest.mark.parametrize(('row', 'col'), [(2, 3), (3, 3)])
 def test_trace_upstream(row, col, ESRI_FLOW_DIR_D8, ESRI_UPSTREAM_LOW, ESRI_UPSTREAM_HIGH):
     expected_upstream = {
@@ -282,12 +276,11 @@ def test_trace_upstream(row, col, ESRI_FLOW_DIR_D8, ESRI_UPSTREAM_LOW, ESRI_UPST
     nptest.assert_array_equal(upstream, expected)
 
 
-##
-## Masking Topo tests
+# Masking Topo tests
 @pytest.mark.parametrize('upstream', [True, False])
 @pytest.mark.parametrize(('row', 'col'), [(2, 3), (3, 3)])
 @pytest.mark.parametrize('factor', [1, 2])
-def test_mask_upstream(row, col, upstream, factor, ESRI_TOPO, 
+def test_mask_upstream(row, col, upstream, factor, ESRI_TOPO,
                        ESRI_UPSTREAM_LOW, ESRI_UPSTREAM_HIGH):
     expected_upstream = {
         (2, 3): ESRI_UPSTREAM_HIGH,
@@ -295,7 +288,7 @@ def test_mask_upstream(row, col, upstream, factor, ESRI_TOPO,
     }
 
     masked_topo = algo.mask_topo(ESRI_TOPO, row // factor, col // factor,
-                                 zoom_factor=1./factor, 
+                                 zoom_factor=1. / factor,
                                  mask_upstream=upstream)
 
     expected_mask = expected_upstream[(row, col)]
@@ -305,8 +298,8 @@ def test_mask_upstream(row, col, upstream, factor, ESRI_TOPO,
     expected = numpy.ma.masked_array(data=ESRI_TOPO, mask=expected_mask)
     nptest.assert_array_equal(masked_topo, expected)
 
-##
-## Flow Accumulation tests
+
+# Flow Accumulation tests
 def test_flow_accumulation_arcgis(ESRI_FLOW_DIR_D8, ESRI_FLOW_ACC):
     flow_acc = algo.flow_accumulation(ESRI_FLOW_DIR_D8)
     nptest.assert_array_equal(flow_acc, ESRI_FLOW_ACC)

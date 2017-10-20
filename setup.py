@@ -5,6 +5,7 @@
 import os
 from setuptools import setup, find_packages
 
+
 def getDataFiles(submodule, folder):
     datadir = os.path.join('watershed', submodule, folder)
     files = [d for d in map(
@@ -38,10 +39,8 @@ CLASSIFIERS = [
     'Programming Language :: Python :: 3.6',
 ]
 INSTALL_REQUIRES = ['numpy', 'scipy', 'matplotlib']
-PACKAGE_DATA = {}
-DATA_FILES = [
-    ('watershed_data/testing', getDataFiles('testing', 'data')),
-]
+PACKAGE_DATA = {'watershed.testing.data': ['*']}
+
 
 if __name__ == "__main__":
     setup(
@@ -56,7 +55,6 @@ if __name__ == "__main__":
         license=LICENSE,
         packages=PACKAGES,
         package_data=PACKAGE_DATA,
-        data_files=DATA_FILES,
         platforms=PLATFORMS,
         classifiers=CLASSIFIERS,
         install_requires=INSTALL_REQUIRES,

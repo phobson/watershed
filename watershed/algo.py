@@ -70,10 +70,10 @@ def _stack_neighbors(topo, radius=1, **padkwargs):
     col_length = M - width + 1
 
     # Linear indices for the starting width-by-width block
-    idx1 = numpy.arange(width)[:, None]*N + numpy.arange(width)
+    idx1 = numpy.arange(width)[:, None] * N + numpy.arange(width)
 
     # Offset (from the starting block indices) linear indices for all the blocks
-    idx2 = numpy.arange(col_length)[:, None]*N + numpy.arange(row_length)
+    idx2 = numpy.arange(col_length)[:, None] * N + numpy.arange(row_length)
 
     # Finally, get the linear indices for all blocks
     all_idx = idx1.ravel()[None, None, :] + idx2[:, :, None]
@@ -219,30 +219,30 @@ def _process_edges(slope, direction):
     rows, cols = direction.shape
 
     # where no flow direction could be computed
-    _r, _c =  numpy.where(slope.mask.all(axis=2))
+    _r, _c = numpy.where(slope.mask.all(axis=2))
 
     # no direction cells on the top row flow up
     toprow = defaultdict(lambda: 64)
 
     # top-row corners flow out at angles
-    toprow.update({0: 32, cols-1: 128})
+    toprow.update({0: 32, cols - 1: 128})
 
     # no direction cells on the bottom flow down
     bottomrow = defaultdict(lambda: 4)
 
     # bottom row corners
-    bottomrow.update({0: 8, cols-1: 2})
+    bottomrow.update({0: 8, cols - 1: 2})
 
     # set up the main look-up dictionary
     # non-top or bottom cells flow left or right
-    missing_directions = defaultdict(lambda: {0: 16, cols-1: 1})
+    missing_directions = defaultdict(lambda: {0: 16, cols - 1: 1})
 
     # add top/bottom rows to the main dictionary
-    missing_directions.update({0: toprow, rows-1: bottomrow})
+    missing_directions.update({0: toprow, rows - 1: bottomrow})
 
     # loop through all of the cells w/o flow direction
     for r, c in zip(_r, _c):
-        if r in [0, rows-1] or c in [0, cols-1]:
+        if r in [0, rows - 1] or c in [0, cols - 1]:
             direction[r, c] = missing_directions[r][c]
         else:
             # raise an error if we didn't clean up an internal sink
@@ -342,7 +342,7 @@ def _trace_upstream(flow_dir, blocks, is_upstream, row, col):
 
         # recurse on all of the neighbors
         for rn, cn in zip(*matches):
-            _trace_upstream(flow_dir, blocks, is_upstream, row+rn-1, col+cn-1)
+            _trace_upstream(flow_dir, blocks, is_upstream, row + rn - 1, col + cn - 1)
 
 
 def trace_upstream(flow_dir, row, col):

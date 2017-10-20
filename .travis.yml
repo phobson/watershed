@@ -14,31 +14,30 @@ matrix:
         - COVERAGE=true
 
 before_install:
-
-  # Here we just install Miniconda, which you shouldn't have to change.
-
   - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
   - chmod +x miniconda.sh
   - ./miniconda.sh -b -p $HOME/miniconda
   - export PATH=$HOME/miniconda/bin:$PATH
-  - conda update --yes conda
+  - conda config --set always_yes true
+  - conda config --add channels conda-forge
+  - conda update conda
+  - conda install nomkl
 
 install:
-
-  # We just set up a conda environment with the right Python version. This
-  # should not need changing.
-
   - conda create --yes -n test python=$TRAVIS_PYTHON_VERSION --channel=conda-forge
   - source activate test
-  #- conda config --add channels phobson
-  - conda install --yes numpy matplotlib scipy nose --channel=conda-forge
-  - conda install --yes coverage docopt requests pyyaml --channel=conda-forge
-  - pip install coveralls
+  - conda install --yes numpy matplotlib scipy --channel=conda-forge
+  - conda install --yes pytest coverage pytest-cov pytest-pep8 coveralls --channel=conda-forge
   - pip install .
 
 script:
-  - nosetests --with-coverage --cover-package=watershed --verbose
+  - python check_watershed.py --verbose --pep8
 
 after_success:
-  - if [ ${COVERAGE} = true ]; then coveralls; fi
+  - if [ ${COVERAGE} = true ]; then
+      coverage run --source watershed check_watershed.py;
+      coverage report -m;
+      coveralls;
+    fi
+
 
